@@ -24,19 +24,27 @@ def set_matrix():
     """Paint on the LED Matrix"""
     return 0
 
+def convert_to_voltage(adc_value):
+    """Convert raw ADC value to voltage based on reference voltage"""
+    reference_voltage = 4.096 # change according to gain: https://learn.adafruit.com/adafruit-4-channel-adc-breakouts/arduino-code#adjusting-gain
+    return (adc_value / 32767) * reference_voltage
+
 def calculate_levels(data, chunk,sample_rate):
+    print("Calculating levels")
+    print(f"Data: {data}")
     # Convert raw data to numpy array
-    data = unpack("%dh"%(len(data)/2),data)
-    data = np.array(data, dtype='h')
+    #data = unpack("%dh"%(len(data)/2),data)
+    #data = np.array(data, dtype='h')
     # Apply FFT - real data so rfft used
     fourier = np.fft.rfft(data)
+    print(fourier)
     # Remove last element in array to make it the same size as chunk
     fourier = np.delete(fourier,len(fourier)-1)
     # Find amplitude
     power = np.log10(np.abs(fourier))**2
-    # Araange array into 8 rows for the 8 bars on LED matrix
+    # Arrange array into 8 rows for the 8 bars on LED matrix
     power = np.reshape(power,(8,chunk/8))
-    matrix= np.int_(np.average(power,axis=1)/4)
+    matrix = np.int_(np.average(power,axis=1)/4)
     return matrix
 
 while True:
@@ -58,7 +66,16 @@ while True:
 
         elapsed = (datetime.now()-sample_start).total_seconds()*1000
         SAMPLE_STATUS = elapsed <= SAMPLE_SIZE
+    
     peak_to_peak = SIGNAL_MAX - SIGNAL_MIN
-    AVG_P2P = (peak_to_peak + AVG_P2P) / 2
-    matrix = calculate_levels(AVG_P2P, CHUNKS, MAX_RES)
-    print(matrix)
+    #AVG_P2P = (peak_to_peak + AVG_P2P) / 2
+    #print(AVG_P2P)
+    voltage = convert_to_voltage(peak_to_peak)
+    #print(voltage)
+
+    try:
+        matrix = calculate_levels(voltage, CHUNKS, MAX_RES)
+        print(matrix)
+    except:
+        pass
+
