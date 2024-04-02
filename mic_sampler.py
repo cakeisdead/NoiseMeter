@@ -2,8 +2,7 @@
 import time
 import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
-from ulab import numpy as np
-from ulab import utils as utils
+import numpy as np
 import board
 import busio
 
@@ -23,24 +22,24 @@ class MicSampler:
 
     def capture(self):
         """Capture samples"""
-        sample_start = time.ticks_us()
+        sample_start = int(round(time.time() * 1000000))
 
         for _ in range(self.num_samples):
             self.samples.append(AnalogIn(self.ads, ADS.P2).value)
 
-        sample_duration = time.ticks_diff(time.ticks_us(), sample_start) / 1_000_000
+        sample_duration = (int(round(time.time() * 1000000)) - sample_start) / 1000000
         array = np.array(self.samples)
         self.samples.clear()
 
         # split into frequency buckets
-        output = utils.spectrogram(array)
+        output = np.sqrt(array)#utils.spectrogram(array)
         max_magnitude = 0
         max_low_freq_mag = 0
         fundamental_freq = 0
 
         for i in range(1, int(self.num_samples / 2) + 1):
             mag = output[i]
-            freq = i * 1.0 / sample_secs
+            freq = i * 1.0 / sample_duration
 
             if mag > max_magnitude:
                 fundamental_freq = freq
